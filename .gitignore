@@ -32,5 +32,15 @@ build/
 ### VS Code ###
 .vscode/
 
+# Local Spring profiles
+application-local.properties
+application-local.yml
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
 ## Other ##
 *DO_NOT_PUSH*
