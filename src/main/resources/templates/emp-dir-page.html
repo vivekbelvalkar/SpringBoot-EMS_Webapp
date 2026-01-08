@@ -1,0 +1,30 @@
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Employee directory</title>
+    </head>
+    <body>
+        <h2>Employee Directory</h2>
+        <button><a th:href="@{/showFormForAdd}">Add employee</a></button><br><br>
+        <table border="3">
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Action</th>
+            </tr>
+            <tr th:each="emp : ${employees}">
+                <td th:text="${emp.firstName}"></td>
+                <td th:text="${emp.lastName}"></td>
+                <td th:text="${emp.email}"></td>
+                <td>
+                    <button><a th:href="@{/showFormForUpdate(employee.id=${emp.id})}">Update</a></button>&nbsp;&nbsp;&nbsp;&nbsp;
+                    <button onclick="return confirm('Are you sure you want to delete this employee ?')"><a th:href="@{/delete(employee.id=${emp.id})}">Delete</a></button>
+                </td>
+            </tr>
+        </table>
+        <br><br>
+        <form th:action="@{/logout}" method="post">
+			<input type="submit" value="Logout" />
+		</form>
+    </body>
+</html>

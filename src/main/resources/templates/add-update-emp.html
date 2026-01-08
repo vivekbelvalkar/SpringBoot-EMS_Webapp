@@ -1,0 +1,20 @@
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Add/Update Employee</title>
+    </head>
+    <body>
+        <h1>Add/Update employee</h1>
+        <form th:object="${employee}" th:action="@{/save}">
+            <input type="hidden" th:field="${employee.id}"/>
+            <input type="text" th:field="${employee.firstName}" placeholder="First name..."/><br><br>
+            <input type="text" th:field="${employee.lastName}" placeholder="Last name..."/><br><br>
+            <input type="text" th:field="${employee.email}" placeholder="Email"/><br><br>
+            <span th:if="${#fields.hasAnyErrors()}">
+                <ul>
+                    <li th:each="err: ${#fields.allErrors()}" th:text="${err}"/>
+                </ul>
+            </span><br>
+            <button type="submit">Save/Update</button>
+        </form>
+    </body>
+</html>
