@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ems-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ems-app
+  template:
+    metadata:
+      labels:
+        app: ems-app
+    spec:
+      containers:
+        - name: ems-app
+          image: IMAGE_NAME
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: ENV_NAME
+              
+              # From ConfigMap
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ems-configmap
+                  key: db_url
+
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: ems-configmap
+                  key: db_username
+
+            # From Secret
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ems-db-secret
+                  key: db_password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ems-app
+spec:
+  type: NodePort
+  selector:
+    app: ems-app
+  ports:
+    - port: 80
+      targetPort: 8080

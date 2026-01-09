@@ -95,5 +95,26 @@ pipeline {
         }
       }
     }
+
+    stage('Deploy') {
+      when {
+        branch 'main'
+      }
+      steps {
+        sh '''
+        IMAGE="${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/${IMAGE_NAME}:${TAG}"
+
+		    kubectl apply -n ${DEPLOY_ENV} -f K8s/configmap.yaml
+
+          sed -e "s|IMAGE_NAME|$IMAGE|g" \
+          -e "s|ENV_NAME|${DEPLOY_ENV}|g" \
+          K8s/app.yaml \
+          | kubectl apply -n ${DEPLOY_ENV} -f -
+
+        kubectl rollout status deployment/ems-app -n ${DEPLOY_ENV}
+        '''
+      }
+    }
+
   }
 }
