@@ -5,8 +5,7 @@ pipeline {
 
   environment {
     IMAGE_NAME = "ems-springboot-webapp"
-    TAG        = "${BUILD_NUMBER}"
-    DEPLOY_ENV = ""          
+    TAG        = "${BUILD_NUMBER}"          
   }
 
   stages {
