@@ -28,7 +28,7 @@ spec:
                   name: ems-configmap
                   key: db_url
 
-            - name: DB_USER
+            - name: DB_USERNAME
               valueFrom:
                 configMapKeyRef:
                   name: ems-configmap
