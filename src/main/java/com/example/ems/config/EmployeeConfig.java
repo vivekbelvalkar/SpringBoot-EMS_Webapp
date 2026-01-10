@@ -45,6 +45,11 @@ public class EmployeeConfig {
 
         httpSecurity.csrf(csrf->csrf.disable());
 
+        httpSecurity.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/**").permitAll()
+                .anyRequest().authenticated()
+            ).httpBasic(Customizer.withDefaults());
+
         return httpSecurity.build();
     }
 
