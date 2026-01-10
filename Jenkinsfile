@@ -95,6 +95,75 @@ pipeline {
       }
     }
 
+    stage('DB Provision') {
+      steps {
+          sh '''
+              set -e
+            
+              # Check if mariadb is present or not
+              if kubectl get statefulset mariadb -n ${DEPLOY_ENV} >/dev/null 2>&1; then
+                echo "MariaDB StatefulSet already exists"
+              else
+                echo "MariaDB not found. Applying mariadb.yaml..."
+                kubectl apply -n ${DEPLOY_ENV} -f K8s/mariadb.yaml
+              fi
+
+              echo "Waiting for MariaDB to be ready..."
+              kubectl rollout status statefulset/mariadb \
+                -n ${DEPLOY_ENV} --timeout=300s
+
+              # get MariaDB pod name
+              DB_POD=$(kubectl get pods -n ${DEPLOY_ENV} \
+                -l app=mariadb \
+                -o jsonpath="{.items[0].metadata.name}")
+
+              echo "MariaDB Pod: $DB_POD"
+
+              # Get DB credentials for login
+              DB_USER=$(kubectl get secret mariadb-secret -n ${DEPLOY_ENV} \
+                -o jsonpath="{.data.user}" | base64 -d)
+
+              DB_PASSWORD=$(kubectl get secret mariadb-secret -n ${DEPLOY_ENV} \
+                -o jsonpath="{.data.password}" | base64 -d)
+
+              # Check if database exists
+              DB_EXISTS=$(kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+                mysql -u$DB_USER -p$DB_PASSWORD \
+                -e "SHOW DATABASES LIKE 'demo';" \
+                | grep demo | wc -l)
+
+              if [ "$DB_EXISTS" -eq "0" ]; then
+                echo "Database demo not found. Creating..."
+                kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+                  mysql -u$DB_USER -p$DB_PASSWORD \
+                  -e "CREATE DATABASE demo;"
+                echo "Database demo created"
+              else
+                echo "Database demo already exists"
+              fi
+
+              # Check if required tables exists
+              TABLE_EXISTS=$(kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+                mysql -u$DB_USER -p$DB_PASSWORD demo \
+                -e "SELECT COUNT(*) FROM information_schema.tables \
+                    WHERE table_schema='demo' AND table_name IN ('employee','members','roles');" \
+                | tail -n 1)
+
+              # Load dump if tables missing
+              if [ "$TABLE_EXISTS" -ne "3" ]; then
+                echo "Tables not found. Loading populateDB.sql..."
+                kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+                  mysql -u$DB_USER -p$DB_PASSWORD demo < SQLs/populateDB.sql
+                echo "Database initialized from dump"
+              else
+                echo "Tables already exist. Skipping DB initialization"
+              fi
+
+              echo " DB Checks Completed "
+            '''
+        }
+    }
+
     stage('Deploy') {
       when {
         branch 'main'
