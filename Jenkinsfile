@@ -101,7 +101,8 @@ pipeline {
               set -e
             
               # Check if mariadb is present or not
-              if kubectl get statefulset mariadb -n ${DEPLOY_ENV} >/dev/null 2>&1; then
+              READY=$(kubectl get statefulset mariadb -n prod -o jsonpath='{.status.readyReplicas}')
+              if [[ "$READY" -gt 0 ]]; then
                 echo "MariaDB StatefulSet already exists"
               else
                 echo "MariaDB not found. Applying mariadb.yaml..."
