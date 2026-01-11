@@ -159,6 +159,29 @@ pipeline {
                 echo "Tables already exist. Skipping DB initialization"
               fi
 
+              # check if DB metrics exporter user exists
+	          DB_METRICS_USERNAME=$(kubectl get secret mariadb-secret -n ${DEPLOY_ENV} \
+              -o jsonpath="{.data.metrics_username}" | base64 -d)
+	          DB_METRICS_USER_PASS=$(kubectl get secret mariadb-secret -n ${DEPLOY_ENV} \
+              -o jsonpath="{.data.metrics_password}" | base64 -d)
+		
+	          DB_METRICS_USER_EXISTS=$(kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+                mysql -u$DB_USER -p$DB_PASSWORD \
+                -e "SELECT user FROM mysql.user where user='$DB_METRICS_USERNAME';" \
+                | grep $DB_METRICS_USERNAME | wc -l)
+		
+	          if [ "$DB_METRICS_USER_EXISTS" -eq "0" ]; then
+              echo "DB metrics user not found. Executing mariadb_metrics_exporter.sql..."
+		          sed -e "s|matrics_username|$DB_METRICS_USERNAME|g" \
+			        -e "s|metrics_userpass|$DB_METRICS_USER_PASS|g" \
+			        SQLs/mariadb_metrics_exporter.sql \
+              | kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+              mysql -u$DB_USER -p$DB_PASSWORD
+              echo "DB metrics user created..."
+            else
+              echo "DB metrics user already exist. Skipping creation..."
+            fi
+
               echo " DB Checks Completed "
             '''
         }
