@@ -33,4 +33,5 @@ spec:
       - ENV_NAME
   endpoints:
     - port: metrics
+      path: /metrics
       interval: 30s
