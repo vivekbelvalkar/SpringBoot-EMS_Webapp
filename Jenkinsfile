@@ -128,14 +128,14 @@ pipeline {
                 -o jsonpath="{.data.password}" | base64 -d)
 
               # Check if database exists
-              DB_EXISTS=$(kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+              DB_EXISTS=$(kubectl exec -n ${DEPLOY_ENV} $DB_POD -c mariadb -- \
                 mysql -u$DB_USER -p$DB_PASSWORD \
                 -e "SHOW DATABASES LIKE 'demo';" \
                 | grep demo | wc -l)
 
               if [ "$DB_EXISTS" -eq "0" ]; then
                 echo "Database demo not found. Creating..."
-                kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+                kubectl exec -n ${DEPLOY_ENV} $DB_POD -c mariadb -- \
                   mysql -u$DB_USER -p$DB_PASSWORD \
                   -e "CREATE DATABASE demo;"
                 echo "Database demo created"
@@ -144,7 +144,7 @@ pipeline {
               fi
 
               # Check if required tables exists
-              TABLE_EXISTS=$(kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+              TABLE_EXISTS=$(kubectl exec -n ${DEPLOY_ENV} $DB_POD -c mariadb -- \
                 mysql -u$DB_USER -p$DB_PASSWORD demo \
                 -e "SELECT COUNT(*) FROM information_schema.tables \
                     WHERE table_schema='demo' AND table_name IN ('employee','members','roles');" \
@@ -153,7 +153,7 @@ pipeline {
               # Load dump if tables missing
               if [ "$TABLE_EXISTS" -ne "3" ]; then
                 echo "Tables not found. Loading populateDB.sql..."
-                kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+                kubectl exec -n ${DEPLOY_ENV} $DB_POD -c mariadb -- \
                   mysql -u$DB_USER -p$DB_PASSWORD demo < SQLs/populateDB.sql
                 echo "Database initialized from dump"
               else
@@ -166,7 +166,7 @@ pipeline {
 	          DB_METRICS_USER_PASS=$(kubectl get secret mariadb-secret -n ${DEPLOY_ENV} \
               -o jsonpath="{.data.metrics_password}" | base64 -d)
 		
-	          DB_METRICS_USER_EXISTS=$(kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+	          DB_METRICS_USER_EXISTS=$(kubectl exec -n ${DEPLOY_ENV} $DB_POD -c mariadb -- \
                 mysql -u$DB_USER -p$DB_PASSWORD \
                 -e "SELECT user FROM mysql.user where user='$DB_METRICS_USERNAME';" \
                 | grep $DB_METRICS_USERNAME | wc -l)
@@ -176,7 +176,7 @@ pipeline {
 		          sed -e "s|matrics_username|$DB_METRICS_USERNAME|g" \
 			        -e "s|metrics_userpass|$DB_METRICS_USER_PASS|g" \
 			        SQLs/mariadb_metrics_exporter.sql \
-              | kubectl exec -n ${DEPLOY_ENV} $DB_POD -- \
+              | kubectl exec -n ${DEPLOY_ENV} $DB_POD -c mariadb -- \
               mysql -u$DB_USER -p$DB_PASSWORD
               echo "DB metrics user created..."
             else
