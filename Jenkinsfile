@@ -202,6 +202,8 @@ pipeline {
           K8s/app.yaml \
           | kubectl apply -n ${DEPLOY_ENV} -f -
 
+        kubectl apply -f K8s/prometheusSvcMonitors.yaml
+
         kubectl rollout status deployment/ems-app -n ${DEPLOY_ENV}
         '''
       }
