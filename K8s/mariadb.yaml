@@ -75,7 +75,7 @@ spec:
               cpu: "500m"
 
         - name: mariadb-exporter
-          image: prom/mysqld-exporter:0.15.1
+          image: prom/mysqld-exporter:v0.15.1
           ports:
             - name: metrics
               containerPort: 9104
