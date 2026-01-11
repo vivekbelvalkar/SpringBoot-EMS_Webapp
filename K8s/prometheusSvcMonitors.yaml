@@ -3,6 +3,8 @@ kind: ServiceMonitor
 metadata:
   name: ems-app-svc-mon
   namespace: monitoring
+  labels:
+    release: monitoring
 spec:
   selector:
     matchLabels:
@@ -20,6 +22,8 @@ kind: ServiceMonitor
 metadata:
   name: mariadb-svc-mon
   namespace: monitoring
+  labels:
+    release: monitoring
 spec:
   selector:
     matchLabels:
