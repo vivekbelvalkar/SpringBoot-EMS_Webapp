@@ -75,5 +75,24 @@ spec:
   selector:
     app: ems-app
   ports:
-    - port: 80
+    - name: http 
+      port: 80
       targetPort: 8080
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ems-app-svc-mon
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: ems-app
+  namespaceSelector:
+    matchNames:
+      - ENV_NAME
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 15s
