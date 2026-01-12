@@ -73,25 +73,6 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "500m"
-
-        - name: mariadb-exporter
-          image: prom/mysqld-exporter:v0.15.1
-          ports:
-            - name: metrics
-              containerPort: 9104
-          env:
-            - name: DATA_SOURCE_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: mariadb-secret
-                  key: exporter-dsn
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              memory: 128Mi
-
       volumes:
         - name: config
           configMap:

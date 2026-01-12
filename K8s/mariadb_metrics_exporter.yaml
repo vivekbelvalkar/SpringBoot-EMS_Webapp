@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb-exporter
+  template:
+    metadata:
+      labels:
+        app: mariadb-exporter
+    spec:
+      containers:
+        - name: exporter
+          image: prom/mysqld-exporter:v0.15.1
+          args:
+            - --config.my-cnf=/etc/mysql/my.cnf
+          ports:
+            - name: metrics
+              containerPort: 9104
+          volumeMounts:
+            - name: mariadb-metrics-config
+              mountPath: /etc/mysql
+              readOnly: true
+      volumes:
+        - name: mariadb-metrics-config
+          secret:
+            secretName: mariadb-metrics-config

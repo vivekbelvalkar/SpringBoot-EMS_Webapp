@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mariadb-bootstrap-job
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: mariadb:10.11
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for MariaDB..."
+              until mysql -h mariadb -u"$DB_USER" -p"$DB_PASSWORD" -e "SELECT 1"; do
+                sleep 5
+              done
+
+              echo "Applying schema & users..."
+              mysql -h mariadb -u"$DB_USER" -p"$DB_PASSWORD" < /sql/db_users_tables.sql
+
+              echo "Checking seed data..."
+              COUNT=$(mysql -h mariadb -u"$DB_USER" -p"$DB_PASSWORD" demo \
+                -N -B -e "SELECT COUNT(*) FROM members;")
+
+              if [ "$COUNT" -eq 0 ]; then
+                echo "Inserting seed data..."
+                mysql -h mariadb -u"$DB_USER" -p"$DB_PASSWORD" demo < /sql/seed_data.sql
+                echo "Seed data inserted"
+              else
+                echo "Seed data already exists. Skipping."
+              fi
+          env:
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: ems-configmap
+                  key: db_username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ems-db-secret
+                  key: db_password
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+      volumes:
+        - name: sql
+          configMap:
+            name: mariadb-bootstrap-sql-cm

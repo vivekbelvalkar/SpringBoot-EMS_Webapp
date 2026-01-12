@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mariadb-bootstrap-sql-cm
+data:
+  db_users_tables.sql: |
+    -- Create DB
+    CREATE DATABASE IF NOT EXISTS demo
+      DEFAULT CHARACTER SET utf8mb4
+      COLLATE utf8mb4_unicode_ci;
+
+    USE demo;
+
+    -- Create tables if not exists
+    CREATE TABLE IF NOT EXISTS employee (
+      id INT NOT NULL AUTO_INCREMENT,
+      first_name VARCHAR(30),
+      last_name VARCHAR(45),
+      email VARCHAR(45),
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB;
+
+    CREATE TABLE IF NOT EXISTS members (
+      userid VARCHAR(50) NOT NULL,
+      pwd VARCHAR(70) NOT NULL,
+      active TINYINT NOT NULL,
+      PRIMARY KEY (userid)
+    ) ENGINE=InnoDB;
+
+    CREATE TABLE IF NOT EXISTS roles (
+      userid VARCHAR(50) NOT NULL,
+      role VARCHAR(50) NOT NULL,
+      UNIQUE KEY userid_role (userid, role),
+      CONSTRAINT roles_ibfk_1
+        FOREIGN KEY (userid) REFERENCES members (userid)
+    ) ENGINE=InnoDB;
+
+    -- Create exporter user
+    CREATE USER IF NOT EXISTS 'mariadb_exporter'@'%'
+      IDENTIFIED BY 'mariadbexporter';
+
+    GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.*
+      TO 'mariadb_exporter'@'%';
+
+    FLUSH PRIVILEGES;
+  seed_data.sql:
+    INSERT INTO employee VALUES
+    (1,'Liam','Nesson','liam@nesson.com'),
+    (2,'Bruce','Willis','bruce@willis.com'),
+    (3,'Tom','Hanks','tom@hanks.com'),
+    (4,'Kate','Winslate','kate@winslate.com'),
+    (12,'Tom','Cruise','tom@cruise.com'),
+    (17,'Arya','Stark','arya@stark.com'),
+    (18,'Jon','Snow','jon@snow.com'),
+    (19,'Robb','Stark','robb@stark.com'),
+    (20,'Jennifer','Lawrence','jennifer@lawrence.com');
+
+    INSERT INTO members VALUES
+    ('john','{bcrypt}$2a$12$RH9R1cDZXjZHd8OmU4WFKuFMsjIMSOiioYmMAENWmQgkI5AhcdONy',1),
+    ('mary','{bcrypt}$2a$12$wnmxQ91DTuSHx./oQ9thkeErX/m2gYWjZLpkKrsxwxPeHd9VpdORW',1),
+    ('susan','{bcrypt}$2a$12$d3NHFokDmxfP1u54r9zAw.X9BoUhBLRp30musqo.9Cw1mdj5xna/u',1);
+
+    INSERT INTO roles VALUES
+    ('john','ROLE_EMPLOYEE'),
+    ('mary','ROLE_EMPLOYEE'),
+    ('mary','ROLE_MANAGER'),
+    ('susan','ROLE_ADMIN'),
+    ('susan','ROLE_EMPLOYEE'),
+    ('susan','ROLE_MANAGER');
+    commit;
