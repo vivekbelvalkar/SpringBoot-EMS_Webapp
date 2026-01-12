@@ -20,14 +20,14 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: mariadb-svc-mon
+  name: mariadb-exporter-svc-mon
   namespace: monitoring
   labels:
     release: monitoring
 spec:
   selector:
     matchLabels:
-      app: mariadb
+      app: mariadb-exporter
   namespaceSelector:
     matchNames:
       - ENV_NAME
