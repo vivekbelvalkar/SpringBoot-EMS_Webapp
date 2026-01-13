@@ -1,0 +1,120 @@
+pipeline {
+  agent {
+    label 'java'
+  }
+
+  environment {
+    IMAGE_NAME = "ems-springboot-webapp"
+    TAG        = "argo-${BUILD_NUMBER}"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Compile') {
+      steps {
+        sh 'chmod +x mvnw'
+        sh './mvnw clean compile'
+      }
+    }
+
+    stage('Test & Sonar') {
+      steps {
+        withSonarQubeEnv('sonarqube') {
+          sh '''
+            ./mvnw verify sonar:sonar \
+              -Dspring.profiles.active=ci \
+              -Dsonar.projectKey=EMS-Springboot-webapp
+          '''
+        }
+      }
+    }
+
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+
+    stage('Package') {
+      steps {
+        sh './mvnw package -DskipTests'
+      }
+    }
+
+    stage('Docker Build') {
+      steps {
+        sh '''
+          docker build \
+            -t ${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/${IMAGE_NAME}:${TAG} .
+        '''
+      }
+    }
+
+    stage('Docker Push') {
+      steps {
+        withCredentials([
+          usernamePassword(
+            credentialsId: 'dockerhub-PAT',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PAT'
+          )
+        ]) {
+          sh '''
+            echo "$DOCKER_PAT" | docker login "$DOCKER_REGISTRY" \
+              -u "$DOCKER_USER" --password-stdin
+
+            docker push \
+              "$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:$TAG"
+
+            docker logout "$DOCKER_REGISTRY"
+          '''
+        }
+      }
+    }
+
+    stage('Update GitOps Repo') {
+        steps {
+            withCredentials([
+            usernamePassword(
+            credentialsId: 'github-PAT',
+            usernameVariable: 'GIT_USER',
+            passwordVariable: 'GIT_PAT'
+            )
+            ]) {
+                sh '''
+                set -e
+                git clone https://${GIT_USER}:${GIT_PAT}@${EMS_ARGO_GITHUB_REPO} -b main
+                cd SpringBoot-EMS-Webapp-ArgoCD
+                if [ "$BRANCH_NAME" = "main" ]; then
+                  cd prod
+                else
+                  cd "$BRANCH_NAME"
+                fi
+                echo "Inside dir:"
+                pwd
+                echo "Updating image tag to ${TAG}"
+
+                sed -i "s/newTag:.*/newTag: \"$TAG\"/" kustomization.yaml
+
+                git config user.email "jenkins@ci.local"
+                git config user.name "jenkins"
+
+                git add kustomization.yaml
+
+                # commit only if there is a change
+                git diff --cached --quiet || git commit -m "Deploy ems-app image ${TAG}"
+
+                git push https://${GIT_USER}:${GIT_PAT}@${EMS_ARGO_GITHUB_REPO} main
+              '''
+            }
+          }
+      }
+  }
+}
