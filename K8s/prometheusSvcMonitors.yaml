@@ -8,7 +8,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: ems-app
+      app: ems-app-svc
   namespaceSelector:
     matchNames:
       - ENV_NAME
