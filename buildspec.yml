@@ -9,6 +9,15 @@ phases:
     commands:
       - mvn clean package -DskipTests
 
+  post_build:
+    commands:
+      - echo "Uploading JAR to deployment bucket from codebuild container"
+      - aws s3 cp target/ems-app.jar s3://dev-ems-artifacts/ems-app.jar
+
+# This section is ONLY for CodePipeline bookkeeping coz we are using codepipeline so it will 
+# push artifact in .zip format anyways...
+# EC2 will NEVER use this
 artifacts:
   files:
-    - target/*.jar
+    - target/ems-app.jar
+  discard-paths: yes
