@@ -93,14 +93,17 @@ pipeline {
                 git clone https://${GIT_USER}:${GIT_PAT}@${EMS_ARGO_GITHUB_REPO} -b main
                 cd SpringBoot-EMS-Webapp-ArgoCD
                 if [ "$BRANCH_NAME" = "main" ]; then
+                  ENV_NAME=prod
                   cd prod
                 else
+                  ENV_NAME=$BRANCH_NAME
                   cd "$BRANCH_NAME"
                 fi
                 echo "Inside dir:"
                 pwd
                 echo "Updating image tag to ${TAG}"
 
+                sed -i "s/env_name:.*/env_name: \"$ENV_NAME\"/" env-config.yaml
                 sed -i "s/newTag:.*/newTag: \"$TAG\"/" kustomization.yaml
 
                 git config user.email "jenkins@ci.local"
