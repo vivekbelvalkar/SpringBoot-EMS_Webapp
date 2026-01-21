@@ -110,6 +110,7 @@ pipeline {
                 git config user.name "jenkins"
 
                 git add kustomization.yaml
+                git add env-config.yaml
 
                 # commit only if there is a change
                 git diff --cached --quiet || git commit -m "Deploy ems-app image ${TAG}"
