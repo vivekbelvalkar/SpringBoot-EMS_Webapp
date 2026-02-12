@@ -12,12 +12,15 @@ phases:
   post_build:
     commands:
       - echo "Uploading JAR to deployment bucket from codebuild container"
-      - aws s3 cp target/ems-app.jar s3://dev-ems-artifacts/ems-app.jar
-
+      - |
+        JAR_FILE=$(find target -name "*.jar" ! -name "*.original")
+        echo "Found JAR: $JAR_FILE"
+        aws s3 cp "$JAR_FILE" s3://dev-ems-artifacts/ems-app.jar
+      
 # This section is ONLY for CodePipeline bookkeeping coz we are using codepipeline so it will 
 # push artifact in .zip format anyways...
 # EC2 will NEVER use this
 artifacts:
   files:
-    - target/ems-app.jar
+    - target/*.jar
   discard-paths: yes
