@@ -15,7 +15,7 @@ phases:
       - |
         JAR_FILE=$(find target -name "*.jar" ! -name "*.original")
         echo "Found JAR: $JAR_FILE"
-        aws s3 cp "$JAR_FILE" s3://dev-ems-artifacts/ems-app.jar
+        aws s3 cp "$JAR_FILE" s3://"$BUCKET_NAME"/ems-app.jar
       
 # This section is ONLY for CodePipeline bookkeeping coz we are using codepipeline so it will 
 # push artifact in .zip format anyways...
