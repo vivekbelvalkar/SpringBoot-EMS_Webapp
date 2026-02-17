@@ -28,7 +28,7 @@ pipeline {
           sh '''
             ./mvnw verify sonar:sonar \
               -Dspring.profiles.active=ci \
-              -Dsonar.projectKey=EMS-Springboot-webapp
+              -Dsonar.projectKey=EMS-Springboot-webapp-"$BRANCH_NAME"
           '''
         }
       }
@@ -53,6 +53,15 @@ pipeline {
         sh '''
           docker build \
             -t ${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/${IMAGE_NAME}:${TAG} .
+        '''
+      }
+    }
+
+    stage('Trivy Scan') {
+      steps {
+        sh '''
+          docker exec trivy_server trivy image --server ${TRIVY_SERVER} \
+          --severity CRITICAL --exit-code 1 ${DOCKER_NAMESPACE}/${IMAGE_NAME}:${TAG}
         '''
       }
     }
