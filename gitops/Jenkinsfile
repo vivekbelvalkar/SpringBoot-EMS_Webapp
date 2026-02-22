@@ -114,6 +114,7 @@ pipeline {
                 echo "Updating image tag to ${TAG}"
 
                 sed -i "s/env_name:.*/env_name: \"$ENV_NAME\"/" env-config.yaml
+                sed -i "s|newName:.*|newName: \"$NEXUS_REGISTRY\"/\"$NEXUS_DOCKER_REPO\"/\"$IMAGE_NAME\"|" kustomization.yaml
                 sed -i "s/newTag:.*/newTag: \"$TAG\"/" kustomization.yaml
 
                 git config user.email "jenkins@ci.local"
