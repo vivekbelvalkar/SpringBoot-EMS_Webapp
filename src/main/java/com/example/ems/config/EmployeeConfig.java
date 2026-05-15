@@ -34,7 +34,7 @@ public class EmployeeConfig {
         httpSecurity.formLogin(Customizer.withDefaults());
 
         httpSecurity.formLogin(form -> form
-			.loginPage("/login").defaultSuccessUrl("/employees")
+			.loginPage("/login").defaultSuccessUrl("/employees",true)
 			.permitAll());
 
         //logout

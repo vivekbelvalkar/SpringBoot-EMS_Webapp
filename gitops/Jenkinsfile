@@ -5,7 +5,7 @@ pipeline {
 
   environment {
     IMAGE_NAME = "ems-springboot-webapp"
-    TAG        = "argo-${BUILD_NUMBER}"
+    TAG        = GIT_COMMIT.take(7)
   }
 
   stages {
@@ -48,11 +48,12 @@ pipeline {
       }
     }
 
-    stage('Docker Build') {
+    stage('Docker Build & Tag') {
       steps {
         sh '''
-          docker build \
-            -t ${DOCKER_REGISTRY}/${DOCKER_NAMESPACE}/${IMAGE_NAME}:${TAG} .
+          docker build -t ${IMAGE_NAME}:${TAG} .
+          docker tag ${IMAGE_NAME}:${TAG} \
+          $NEXUS_REGISTRY/$NEXUS_DOCKER_REPO/${IMAGE_NAME}:${TAG}
         '''
       }
     }
@@ -61,7 +62,7 @@ pipeline {
       steps {
         sh '''
           docker exec trivy_server trivy image --server ${TRIVY_SERVER} \
-          --severity CRITICAL --exit-code 1 ${DOCKER_NAMESPACE}/${IMAGE_NAME}:${TAG}
+          --severity CRITICAL --exit-code 1 ${IMAGE_NAME}:${TAG}
         '''
       }
     }
@@ -70,19 +71,19 @@ pipeline {
       steps {
         withCredentials([
           usernamePassword(
-            credentialsId: 'dockerhub-PAT',
+            credentialsId: 'nexusdockerrepo',
             usernameVariable: 'DOCKER_USER',
             passwordVariable: 'DOCKER_PAT'
           )
         ]) {
           sh '''
-            echo "$DOCKER_PAT" | docker login "$DOCKER_REGISTRY" \
+            echo "$DOCKER_PAT" | docker login "$NEXUS_REGISTRY" \
               -u "$DOCKER_USER" --password-stdin
 
             docker push \
-              "$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$IMAGE_NAME:$TAG"
+              "$NEXUS_REGISTRY/$NEXUS_DOCKER_REPO/$IMAGE_NAME:$TAG"
 
-            docker logout "$DOCKER_REGISTRY"
+            docker logout "$NEXUS_REGISTRY"
           '''
         }
       }
@@ -113,6 +114,7 @@ pipeline {
                 echo "Updating image tag to ${TAG}"
 
                 sed -i "s/env_name:.*/env_name: \"$ENV_NAME\"/" env-config.yaml
+                sed -i "s|newName:.*|newName: \"$NEXUS_REGISTRY\"/\"$NEXUS_DOCKER_REPO\"/\"$IMAGE_NAME\"|" kustomization.yaml
                 sed -i "s/newTag:.*/newTag: \"$TAG\"/" kustomization.yaml
 
                 git config user.email "jenkins@ci.local"
